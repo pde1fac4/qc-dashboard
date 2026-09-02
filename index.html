@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แดชบอร์ด QC กระบวนการทำสีฝุ่น</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    color-scheme: light;
+    --surface-1:#fcfcfb; --surface-2:#f9f9f7; --surface-card:#ffffff;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+    --gridline:#e1e0d9; --border:rgba(11,11,11,0.10);
+    --series-1:#2a78d6; --series-2:#eb6834;
+    --good:#0ca30c; --good-bg:#e6f6e6;
+    --warning:#fab219; --warning-bg:#fff6df;
+    --critical:#d03b3b; --critical-bg:#fbe9e9;
+    --neutral-bg:#f0efec;
+    --accent:#c05a1f; --accent-ink:#7a3a10;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface-1:#1a1a19; --surface-2:#0d0d0d; --surface-card:#232322;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8d86;
+      --gridline:#2c2c2a; --border:rgba(255,255,255,0.12);
+      --series-1:#3987e5; --series-2:#d95926;
+      --good:#0ca30c; --good-bg:#123a12;
+      --warning:#fab219; --warning-bg:#4a3a0d;
+      --critical:#e66767; --critical-bg:#4a1c1c;
+      --neutral-bg:#2a2a28;
+      --accent:#e08a4e; --accent-ink:#f0b98a;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --surface-2:#0d0d0d; --surface-card:#232322;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8d86;
+    --gridline:#2c2c2a; --border:rgba(255,255,255,0.12);
+    --series-1:#3987e5; --series-2:#d95926;
+    --good:#0ca30c; --good-bg:#123a12;
+    --warning:#fab219; --warning-bg:#4a3a0d;
+    --critical:#e66767; --critical-bg:#4a1c1c;
+    --neutral-bg:#2a2a28;
+    --accent:#e08a4e; --accent-ink:#f0b98a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--surface-2); color:var(--text-primary);
+    font-family:'Sarabun','Tahoma','Segoe UI',system-ui,sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:20px 20px 64px;}
+  header.top{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    flex-wrap:wrap; margin-bottom:18px;
+  }
+  header.top h1{font-size:20px; font-weight:700; margin:0 0 2px;}
+  header.top .sub{color:var(--text-secondary); font-size:13px;}
+  .btn{
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+    border-radius:8px; border:1px solid var(--border); background:var(--surface-card);
+    color:var(--text-primary); padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
+    transition:background .15s;
+  }
+  .btn:hover{background:var(--surface-1);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{filter:brightness(1.06);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .card{background:var(--surface-card); border:1px solid var(--border); border-radius:12px;}
+
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px;}
+  .kpi{padding:14px 16px;}
+  .kpi .label{font-size:12px; color:var(--text-muted); font-weight:600; letter-spacing:.02em;}
+  .kpi .value{font-size:26px; font-weight:700; margin-top:4px; font-variant-numeric:proportional-nums;}
+  .kpi .value.good{color:var(--good);}
+  .kpi .value.critical{color:var(--critical);}
+  .kpi .value.warning{color:var(--accent-ink);}
+
+  .chart-card{padding:16px 18px; margin-bottom:18px;}
+  .chart-card h2{font-size:14px; font-weight:700; margin:0 0 12px;}
+  .bar-row{display:flex; align-items:center; gap:10px; margin:7px 0;}
+  .bar-row .lbl{width:190px; flex:0 0 190px; font-size:12.5px; color:var(--text-secondary); text-align:right;}
+  .bar-track{flex:1; background:var(--surface-1); border-radius:5px; height:16px; position:relative; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--critical); transition:width .3s;}
+  .bar-row .count{width:74px; flex:0 0 74px; font-size:12.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;}
+
+  .filters{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:12px 14px;}
+  .filters input[type=text], .filters select{
+    font-family:inherit; font-size:13px; padding:7px 10px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary);
+  }
+  .filters label{font-size:12px; color:var(--text-muted); font-weight:600; margin-right:4px;}
+  .filters .grp{display:flex; align-items:center; gap:6px;}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+  .seg button{
+    border:none; background:var(--surface-1); color:var(--text-secondary); font-family:inherit;
+    font-size:12.5px; font-weight:600; padding:7px 12px; cursor:pointer;
+  }
+  .seg button.active{background:var(--accent); color:#fff;}
+
+  table.data{width:100%; border-collapse:collapse; font-size:13px;}
+  table.data th{
+    text-align:left; font-size:11.5px; color:var(--text-muted); font-weight:700;
+    text-transform:uppercase; letter-spacing:.03em; padding:9px 10px; border-bottom:1px solid var(--gridline);
+    white-space:nowrap;
+  }
+  table.data td{padding:9px 10px; border-bottom:1px solid var(--gridline); vertical-align:middle;}
+  table.data tbody tr:hover{background:var(--surface-1);}
+  table.data tbody tr{cursor:pointer;}
+
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px;
+    font-size:12px; font-weight:700; white-space:nowrap;
+  }
+  .badge.good{background:var(--good-bg); color:var(--good);}
+  .badge.warning{background:var(--warning-bg); color:var(--accent-ink);}
+  .badge.critical{background:var(--critical-bg); color:var(--critical);}
+  .badge.neutral{background:var(--neutral-bg); color:var(--text-muted);}
+  .badge::before{content:''; width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+  .empty{padding:40px 20px; text-align:center; color:var(--text-muted);}
+  .empty.error{color:var(--critical);}
+
+  /* detail drawer */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50; overflow:auto;}
+  .overlay.open{display:flex;}
+  .drawer{background:var(--surface-card); border-radius:14px; max-width:720px; width:100%; padding:22px 24px; border:1px solid var(--border);}
+  .drawer h2{margin:0 0 2px; font-size:17px;}
+  .drawer .meta{color:var(--text-secondary); font-size:12.5px; margin-bottom:14px;}
+  .drawer .closebtn{float:right;}
+  .detail-table{width:100%; border-collapse:collapse; font-size:12.8px; margin-top:6px;}
+  .detail-table th{text-align:left; color:var(--text-muted); font-weight:700; font-size:11px; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--gridline);}
+  .detail-table td{padding:6px 8px; border-bottom:1px solid var(--gridline);}
+  .detail-table tr.section td{padding-top:14px; font-weight:700; color:var(--text-secondary); border-bottom:none; font-size:12px;}
+  .note{font-size:12px; color:var(--text-muted); margin-top:14px; line-height:1.6;}
+
+  .banner{
+    padding:10px 14px; border-radius:10px; font-size:12.5px; margin-bottom:14px;
+    background:var(--warning-bg); color:var(--accent-ink); border:1px solid var(--border);
+    display:none;
+  }
+  .banner.show{display:block;}
+  .settings{display:none; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 14px; margin-bottom:14px;}
+  .settings.open{display:flex;}
+  .settings input{flex:1; min-width:260px; font-family:inherit; font-size:12.5px; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary);}
+  footer{margin-top:24px; text-align:center; color:var(--text-muted); font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>แดชบอร์ด QC กระบวนการทำสีฝุ่น</h1>
+      <div class="sub" id="lastUpdated">ยังไม่ได้โหลดข้อมูล</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="btnSettings" type="button">⚙ ตั้งค่า</button>
+      <button class="btn" id="btnTheme" type="button">🌙 โหมดมืด</button>
+      <button class="btn" id="btnRefresh" type="button">↻ รีเฟรช</button>
+      <button class="btn" id="btnExportCsv" type="button">⇩ Export CSV</button>
+      <button class="btn primary" id="btnExportXlsx" type="button">⇩ Export Excel</button>
+    </div>
+  </header>
+
+  <div class="settings card" id="settingsPanel">
+    <label style="width:100%;font-size:12px;color:var(--text-muted);font-weight:600;">แหล่งข้อมูลหลัก: อ่านตรงจาก Google Sheet (ต้องแชร์ลิงก์เป็น "ทุกคนที่มีลิงก์ - ดูได้")</label>
+    <label for="sheetIdInput" style="font-size:12px;color:var(--text-muted);">Spreadsheet ID</label>
+    <input type="text" id="sheetIdInput" placeholder="เช่น 1hlkQQFfrIMVnm_g-GK80v40yS64Dwp-gfVg1dZccLZs">
+    <label for="sheetGidInput" style="font-size:12px;color:var(--text-muted);">gid ของแท็บ (ดูจาก #gid=... ท้าย URL)</label>
+    <input type="text" id="sheetGidInput" placeholder="เช่น 1453635812" style="min-width:140px;flex:0 0 160px;">
+    <button class="btn primary" id="btnSaveSheet" type="button">บันทึกและโหลดใหม่</button>
+    <label for="scriptUrlInput" style="width:100%;font-size:12px;color:var(--text-muted);font-weight:600;margin-top:6px;">แหล่งข้อมูลสำรอง (ถ้าอ่านตรงไม่ได้): Apps Script Web App URL</label>
+    <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec (ไม่บังคับ)">
+    <button class="btn" id="btnSaveUrl" type="button">บันทึก URL สำรอง</button>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="kpi-row">
+    <div class="card kpi"><div class="label">งานทั้งหมด</div><div class="value" id="kpiTotal">–</div></div>
+    <div class="card kpi"><div class="label">ผ่านทุกรายการ</div><div class="value good" id="kpiPass">–</div></div>
+    <div class="card kpi"><div class="label">รอแก้ไข</div><div class="value warning" id="kpiWarn">–</div></div>
+    <div class="card kpi"><div class="label">มีรายการไม่ผ่าน</div><div class="value critical" id="kpiFail">–</div></div>
+    <div class="card kpi"><div class="label">อัตราผ่าน</div><div class="value" id="kpiRate">–</div></div>
+  </div>
+
+  <div class="card chart-card">
+    <h2>จำนวนงานที่ไม่ผ่านตามรายการตรวจ (Top)</h2>
+    <div id="failChart"></div>
+    <div class="empty" id="failChartEmpty" style="display:none;padding:12px 0;">ยังไม่มีข้อมูลไม่ผ่าน</div>
+  </div>
+
+  <div class="card filters">
+    <div class="grp">
+      <label>ค้นหา</label>
+      <input type="text" id="searchInput" placeholder="Job No. / ชื่อผู้บันทึก">
+    </div>
+    <div class="grp">
+      <label>สถานะ</label>
+      <select id="statusFilter">
+        <option value="all">ทั้งหมด</option>
+        <option value="pass">ผ่านทุกรายการ</option>
+        <option value="warning">มีรายการรอแก้ไข</option>
+        <option value="fail">มีรายการไม่ผ่าน</option>
+      </select>
+    </div>
+    <div class="grp">
+      <label>มาตรฐานความหนาสี (TH1-TH3)</label>
+      <div class="seg" id="thToggle">
+        <button data-th="in" class="active" type="button">ภายใน ≤60 μm</button>
+        <button data-th="out" type="button">ภายนอก ≤80 μm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="overflow-x:auto;">
+    <table class="data" id="dataTable">
+      <thead>
+        <tr>
+          <th>Job No.</th>
+          <th>วันที่</th>
+          <th>ผู้บันทึก</th>
+          <th>สถานะรวม</th>
+          <th>รายการไม่ผ่าน</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="empty" id="tableEmpty" style="display:none;">ไม่พบข้อมูล</div>
+  </div>
+
+  <footer>ข้อมูลอ่านตรงจาก Google Sheet (ต้องแชร์ลิงก์เป็น "ทุกคนที่มีลิงก์ - ดูได้") · เกณฑ์มาตรฐานอ้างอิงจากใบตรวจสอบกระบวนการทำสีฝุ่น (PDF)</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <button class="btn closebtn" id="btnCloseDrawer" type="button">✕ ปิด</button>
+    <h2 id="drawerTitle">Job</h2>
+    <div class="meta" id="drawerMeta"></div>
+    <table class="detail-table" id="drawerTable"></table>
+    <div class="note">รายการที่ไม่มีมาตรฐานตายตัวในใบตรวจสอบ (กระแส/แรงดัน/ปรับสี/ปรับลม) แสดงเฉพาะค่าที่บันทึก ไม่มีการตัดสินผ่าน/ไม่ผ่าน · เกณฑ์อุณหภูมิเตาอบ (T1/T2) และความเร็วโซ่ (M1/M2) คำนวณจากค่าที่วัดได้เพียงอย่างเดียว โดยไม่รวมเวลา/หน่วยที่อาจต่างกัน จึงควรตรวจทานร่วมกับผู้ควบคุมไลน์เสมอ</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxntg43Prkel6pAt-ceclhrUQytEZXZzxtchsi66cAvWbcd44qU9vLAvhi1qbdAZ-62/exec";
+  var DEFAULT_SHEET_ID = "1hlkQQFfrIMVnm_g-GK80v40yS64Dwp-gfVg1dZccLZs";
+  var DEFAULT_SHEET_GID = "1453635812";
+
+  function safeGet(key, fallback){
+    try { var v = localStorage.getItem(key); return v === null ? fallback : v; } catch(e){ return fallback; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, val); } catch(e){ /* ignore */ }
+  }
+
+  var scriptUrl = safeGet('qc_script_url', DEFAULT_SCRIPT_URL); // ทางเลือกสำรอง ใช้เมื่ออ่านตรงจากชีตไม่ได้
+  var sheetId = safeGet('qc_sheet_id', DEFAULT_SHEET_ID);
+  var sheetGid = safeGet('qc_sheet_gid', DEFAULT_SHEET_GID);
+  var thMode = safeGet('qc_th_mode', 'in'); // 'in' = ภายใน 60, 'out' = ภายนอก 80
+  var theme = safeGet('qc_theme', '');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+
+  var allRecords = []; // raw objects keyed by sheet header
+  var headers = [];
+  var computedRows = []; // {record, jobNo, date, name, checks:[...], failCount, overallStatus}
+
+  // ---------- header matching ----------
+  function normalize(s){ return String(s == null ? '' : s).trim(); }
+  function findHeader(cands){
+    for (var i=0;i<cands.length;i++){
+      var target = cands[i].toLowerCase();
+      for (var j=0;j<headers.length;j++){
+        if (normalize(headers[j]).toLowerCase() === target) return headers[j];
+      }
+    }
+    for (var i2=0;i2<cands.length;i2++){
+      var target2 = cands[i2].toLowerCase();
+      for (var j2=0;j2<headers.length;j2++){
+        if (normalize(headers[j2]).toLowerCase().indexOf(target2) !== -1) return headers[j2];
+      }
+    }
+    return null;
+  }
+
+  var COLMAP = {}; // logical key -> actual header string (resolved once data loads)
+  function resolveColumns(){
+    COLMAP = {
+      job:   findHeader(['Job No. (JOB)','Job No.','JOB']),
+      date:  findHeader(['วันที่/เดือน/ปี (DATE)','วันที่/เดือน/ปี','DATE','Date','วันที่','บันทึกเมื่อ']),
+      name:  findHeader(['ชื่อ-นามสกุล','ชื่อผู้บันทึก','ชื่อ']),
+      note:  findHeader(['หมายเหตุ']),
+      color: findHeader(['เฉดสี (COLOR)','เฉดสี','COLOR']),
+      uni:   findHeader(['UNI']),
+      cur:   findHeader(['CUR']),
+      th1:   findHeader(['TH1']),
+      th2:   findHeader(['TH2']),
+      th3:   findHeader(['TH3']),
+      b1:    findHeader(['B1']),
+      b2:    findHeader(['B2']),
+      b3:    findHeader(['B3']),
+      b4:    findHeader(['B4']),
+      b5:    findHeader(['B5']),
+      b6:    findHeader(['B6']),
+      m1:    findHeader(['M1']),
+      m2:    findHeader(['M2']),
+      t1:    findHeader(['T1']),
+      t2:    findHeader(['T2']),
+      c1:    findHeader(['C1']),
+      v1:    findHeader(['V1','C2']),
+      a1:    findHeader(['A1']),
+      p1:    findHeader(['P1'])
+    };
+  }
+
+  function num(v){
+    if (v === '' || v === null || v === undefined) return null;
+    var n = parseFloat(String(v).replace(',', '.'));
+    return isNaN(n) ? null : n;
+  }
+
+  // range check helpers
+  function inRange(v, min, max){ if (v===null) return null; return v>=min && v<=max; }
+  function belowMax(v, max){ if (v===null) return null; return v < max; }
+
+  var NUMERIC_CRITERIA = [
+    {key:'b1', label:'บ่อที่ 1 (ล้างคราบไขมัน) — F.AI.', std:'8 - 12 pt.', test:function(v){return inRange(v,8,12);}},
+    {key:'b2', label:'บ่อที่ 2 (น้ำเปล่า) — F.AI.', std:'< 2.0 pt.', test:function(v){return belowMax(v,2.0);}},
+    {key:'b3', label:'บ่อที่ 3 (น้ำเปล่า) — F.AI.', std:'< 2.0 pt.', test:function(v){return belowMax(v,2.0);}},
+    {key:'b4', label:'บ่อที่ 4 (เคลือบเซอร์โคเนียม) — T.A./pH', std:'T.A. 2-6 pt. หรือ pH 5.5-6.2', test:function(v){
+        if (v===null) return null;
+        return inRange(v,2,6) || inRange(v,5.5,6.2);
+      }},
+    {key:'b5', label:'บ่อที่ 5 (น้ำเปล่า) — T.A.', std:'< 3 pt.', test:function(v){return belowMax(v,3);}},
+    {key:'b6', label:'บ่อที่ 6 (น้ำเปล่า) — T.A.', std:'< 0.5 pt.', test:function(v){return belowMax(v,0.5);}},
+    {key:'m1', label:'ความเร็วโซ่ Motor 1', std:'18-20 Hz', test:function(v){return inRange(v,18,20);}},
+    {key:'m2', label:'ความเร็วโซ่ Motor 2', std:'18-20 Hz', test:function(v){return inRange(v,18,20);}},
+    {key:'t1', label:'เตาอบแห้ง (T1)', std:'100°C (±5) / 15 นาที', test:function(v){return inRange(v,95,105);}},
+    {key:'t2', label:'เตาอบสี (T2)', std:'200°C (±10) / 10 นาที', test:function(v){return inRange(v,190,210);}}
+  ];
+  var VISUAL_CRITERIA = [
+    {key:'color', label:'เฉดสี (Visual)'},
+    {key:'uni', label:'ความแน่นของสีที่พ่น (UNI, Visual)'},
+    {key:'cur', label:'ความคงทนสี น้ำยา MEK (CUR)'}
+  ];
+  var INFO_ONLY = [
+    {key:'c1', label:'กระแส (C1)', unit:'μA'},
+    {key:'v1', label:'แรงดัน (V1)', unit:'kV'},
+    {key:'a1', label:'ปรับสี (A1)', unit:'ลบ.ซม./วินาที'},
+    {key:'p1', label:'ปรับลม (P1)', unit:'ลบ.ม./ชม.'}
+  ];
+
+  function visualStatus(raw){
+    var s = normalize(raw);
+    if (!s) return {status:'neutral', text:'–'};
+    if (s.indexOf('ไม่ผ่าน') !== -1) return {status:'critical', text:'ไม่ผ่าน'};
+    if (s.indexOf('แก้ไข') !== -1) return {status:'warning', text:'ทำการแก้ไข'};
+    if (s.indexOf('ผ่าน') !== -1) return {status:'good', text:'ผ่าน'};
+    return {status:'neutral', text:s};
+  }
+
+  function thStd(){
+    return thMode === 'out' ? {max:80, label:'ภายนอก ≤ 80 μm'} : {max:60, label:'ภายใน ≤ 60 μm'};
+  }
+
+  function computeChecks(rec){
+    var checks = [];
+    NUMERIC_CRITERIA.forEach(function(c){
+      var raw = COLMAP[c.key] ? rec[COLMAP[c.key]] : undefined;
+      var v = num(raw);
+      var pass = c.test(v);
+      checks.push({
+        key:c.key, label:c.label, std:c.std, value:(v===null? (raw===undefined||raw===''?'–':raw) : v),
+        status: v===null ? 'neutral' : (pass ? 'good':'critical'),
+        statusText: v===null ? 'ไม่มีข้อมูล' : (pass ? 'ผ่าน':'ไม่ผ่าน')
+      });
+    });
+    // thickness TH1-3
+    var th = thStd();
+    ['th1','th2','th3'].forEach(function(k, idx){
+      var raw = COLMAP[k] ? rec[COLMAP[k]] : undefined;
+      var v = num(raw);
+      var pass = v===null ? null : v <= th.max;
+      checks.push({
+        key:k, label:'ความหนาสี '+(idx===0?'ส่วนบน':idx===1?'ส่วนกลาง':'ส่วนล่าง')+' (TH'+(idx+1)+')',
+        std: th.label, value: v===null ? (raw===undefined||raw===''?'–':raw) : v+' μm',
+        status: v===null ? 'neutral' : (pass?'good':'critical'),
+        statusText: v===null ? 'ไม่มีข้อมูล' : (pass?'ผ่าน':'ไม่ผ่าน')
+      });
+    });
+    // visual
+    VISUAL_CRITERIA.forEach(function(c){
+      var raw = COLMAP[c.key] ? rec[COLMAP[c.key]] : undefined;
+      var r = visualStatus(raw);
+      checks.push({key:c.key, label:c.label, std:'ตรวจด้วยสายตา/สัมผัส', value: r.text, status:r.status, statusText:r.text});
+    });
+    // info only
+    INFO_ONLY.forEach(function(c){
+      var raw = COLMAP[c.key] ? rec[COLMAP[c.key]] : undefined;
+      var has = raw !== undefined && raw !== '' && raw !== null;
+      checks.push({key:c.key, label:c.label, std:'(ไม่มีเกณฑ์ตายตัว)', value: has ? (raw + ' ' + c.unit) : '–', status:'neutral', statusText: has ? 'บันทึกค่า':'ไม่มีข้อมูล', infoOnly:true});
+    });
+    return checks;
+  }
+
+  function buildComputedRows(){
+    resolveColumns();
+    computedRows = allRecords.map(function(rec){
+      var checks = computeChecks(rec);
+      var judgeable = checks.filter(function(c){ return !c.infoOnly && c.status !== 'neutral'; });
+      var fails = judgeable.filter(function(c){ return c.status === 'critical'; });
+      var warnings = judgeable.filter(function(c){ return c.status === 'warning'; });
+      var overall = judgeable.length === 0 ? 'neutral' : (fails.length > 0 ? 'critical' : (warnings.length > 0 ? 'warning' : 'good'));
+      return {
+        rec: rec,
+        job: COLMAP.job ? normalize(rec[COLMAP.job]) : '',
+        date: COLMAP.date ? normalize(rec[COLMAP.date]) : '',
+        name: COLMAP.name ? normalize(rec[COLMAP.name]) : '',
+        checks: checks,
+        failCount: fails.length,
+        warnCount: warnings.length,
+        failLabels: fails.map(function(f){return f.label;}),
+        overall: overall
+      };
+    });
+  }
+
+  // ---------- fetch ----------
+  var elBanner = document.getElementById('banner');
+  function showBanner(msg){ elBanner.textContent = msg; elBanner.classList.add('show'); }
+  function hideBanner(){ elBanner.classList.remove('show'); }
+
+  // อ่านข้อมูลตรงจาก Google Sheet ด้วย gviz JSON endpoint (public read, ไม่ต้องมี Apps Script)
+  // ใช้ได้เฉพาะเมื่อชีตแชร์เป็น "ทุกคนที่มีลิงก์ - ดูได้" (หรือเผยแพร่สู่เว็บ) เท่านั้น
+  function fetchViaGviz(){
+    return new Promise(function(resolve, reject){
+      if (!sheetId){ reject(new Error('ยังไม่ได้ตั้งค่า Spreadsheet ID')); return; }
+      var cbName = 'qcGvizCb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+      var done = false;
+      var scriptEl = document.createElement('script');
+
+      var timer = setTimeout(function(){
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error('หมดเวลารอตอบกลับจาก Google Sheet (อาจเป็นเพราะชีตยังไม่ได้แชร์เป็น "ทุกคนที่มีลิงก์ - ดูได้")'));
+      }, 9000);
+
+      function cleanup(){
+        clearTimeout(timer);
+        delete window[cbName];
+        if (scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+      }
+
+      window[cbName] = function(response){
+        if (done) return;
+        done = true;
+        cleanup();
+        try {
+          if (!response || !response.table) throw new Error('รูปแบบข้อมูลที่ได้ไม่ตรงตามที่คาด');
+          var cols = response.table.cols || [];
+          var hdrs = cols.map(function(c, i){ return normalize(c.label) || ('col'+i); });
+          var recs = (response.table.rows || []).map(function(row){
+            var obj = {};
+            (row.c || []).forEach(function(cell, i){
+              var v = cell ? (cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || '')) : '';
+              obj[hdrs[i]] = v;
+            });
+            return obj;
+          }).filter(function(o){
+            return Object.keys(o).some(function(k){ return normalize(o[k]) !== ''; });
+          });
+          resolve({headers:hdrs, records:recs});
+        } catch(e){ reject(e); }
+      };
+
+      var q = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId) + '/gviz/tq?';
+      q += 'gid=' + encodeURIComponent(sheetGid || '0');
+      q += '&headers=1';
+      q += '&tqx=out:json;responseHandler:' + cbName;
+      q += '&_=' + Date.now();
+      scriptEl.src = q;
+      scriptEl.onerror = function(){
+        if (done) return;
+        done = true;
+        cleanup();
+        reject(new Error('โหลด script จาก Google Sheet ไม่สำเร็จ (เช็คว่า Spreadsheet ID/gid ถูกต้อง และแชร์ลิงก์เป็น "ทุกคนที่มีลิงก์ - ดูได้")'));
+      };
+      document.body.appendChild(scriptEl);
+    });
+  }
+
+  // อ่านผ่าน Apps Script Web App (?action=getAll) — ใช้เป็นทางเลือกสำรองถ้าอ่านตรงจากชีตไม่ได้
+  function fetchViaScript(){
+    if (!scriptUrl){ return Promise.reject(new Error('ยังไม่ได้ตั้งค่า Apps Script URL สำรอง')); }
+    var url = scriptUrl + (scriptUrl.indexOf('?')===-1 ? '?' : '&') + 'action=getAll&_=' + Date.now();
+    return fetch(url, {method:'GET'}).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data){
+      if (data.ok === false){ throw new Error(data.error || 'เซิร์ฟเวอร์ตอบกลับข้อผิดพลาด'); }
+      return {headers: data.headers || [], records: data.records || []};
+    });
+  }
+
+  function loadData(){
+    hideBanner();
+    document.getElementById('lastUpdated').textContent = 'กำลังโหลดข้อมูล…';
+    fetchViaGviz()
+      .catch(function(gvizErr){
+        return fetchViaScript().catch(function(scriptErr){
+          throw new Error('อ่านตรงจากชีตไม่สำเร็จ (' + gvizErr.message + ') และอ่านผ่าน Apps Script สำรองก็ไม่สำเร็จ (' + scriptErr.message + ')');
+        });
+      })
+      .then(function(result){
+        headers = result.headers || [];
+        allRecords = result.records || [];
+        buildComputedRows();
+        render();
+        document.getElementById('lastUpdated').textContent =
+          'อัปเดตล่าสุด ' + new Date().toLocaleString('th-TH') + ' · ' + allRecords.length + ' รายการ';
+      })
+      .catch(function(err){
+        document.getElementById('lastUpdated').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+        showBanner('ดึงข้อมูลไม่สำเร็จ: ' + err.message + ' — ตรวจสอบว่า (1) เปิด Google Sheet แล้วกด Share ตั้งเป็น "ทุกคนที่มีลิงก์ - ดูได้", (2) Spreadsheet ID/gid ในปุ่ม ⚙ ตั้งค่าถูกต้อง, (3) เปิดไฟล์นี้จากเบราว์เซอร์จริง ไม่ใช่หน้าพรีวิวแชท');
+      });
+  }
+
+  // ---------- render ----------
+  var STATUS_LABEL = {good:'ผ่านทุกรายการ', critical:'มีรายการไม่ผ่าน', neutral:'ไม่มีข้อมูลตัดสิน', warning:'มีรายการรอแก้ไข'};
+
+  function badge(status, text){
+    return '<span class="badge '+status+'">'+text+'</span>';
+  }
+
+  function applyFilters(rows){
+    var q = normalize(document.getElementById('searchInput').value).toLowerCase();
+    var statusF = document.getElementById('statusFilter').value;
+    return rows.filter(function(r){
+      if (q && (r.job.toLowerCase().indexOf(q)===-1 && r.name.toLowerCase().indexOf(q)===-1)) return false;
+      if (statusF==='pass' && r.overall!=='good') return false;
+      if (statusF==='warning' && r.overall!=='warning') return false;
+      if (statusF==='fail' && r.overall!=='critical') return false;
+      return true;
+    });
+  }
+
+  function renderTable(){
+    var rows = applyFilters(computedRows);
+    var tbody = document.getElementById('tableBody');
+    var emptyEl = document.getElementById('tableEmpty');
+    tbody.innerHTML = '';
+    if (rows.length===0){ emptyEl.style.display='block'; return; }
+    emptyEl.style.display='none';
+    rows.forEach(function(r, i){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>'+(r.job||'–')+'</td>'+
+        '<td>'+(r.date||'–')+'</td>'+
+        '<td>'+(r.name||'–')+'</td>'+
+        '<td>'+badge(r.overall, STATUS_LABEL[r.overall])+'</td>'+
+        '<td>'+(r.failCount>0 ? r.failCount+' รายการ' : (r.warnCount>0 ? r.warnCount+' รายการรอแก้ไข' : '–'))+'</td>';
+      tr.addEventListener('click', function(){ openDrawer(r); });
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderKpis(){
+    var total = computedRows.length;
+    var pass = computedRows.filter(function(r){return r.overall==='good';}).length;
+    var warn = computedRows.filter(function(r){return r.overall==='warning';}).length;
+    var fail = computedRows.filter(function(r){return r.overall==='critical';}).length;
+    var judged = pass+warn+fail;
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiPass').textContent = pass;
+    document.getElementById('kpiWarn').textContent = warn;
+    document.getElementById('kpiFail').textContent = fail;
+    document.getElementById('kpiRate').textContent = judged ? Math.round(pass/judged*100)+'%' : '–';
+  }
+
+  function renderFailChart(){
+    var counts = {};
+    computedRows.forEach(function(r){
+      r.checks.forEach(function(c){
+        if (!c.infoOnly && c.status==='critical'){
+          counts[c.label] = (counts[c.label]||0)+1;
+        }
+      });
+    });
+    var entries = Object.keys(counts).map(function(k){return {label:k, count:counts[k]};});
+    entries.sort(function(a,b){return b.count-a.count;});
+    entries = entries.slice(0,8);
+    var wrap = document.getElementById('failChart');
+    var emptyEl = document.getElementById('failChartEmpty');
+    wrap.innerHTML='';
+    if (entries.length===0){ emptyEl.style.display='block'; return; }
+    emptyEl.style.display='none';
+    var max = entries[0].count;
+    entries.forEach(function(e){
+      var row = document.createElement('div');
+      row.className='bar-row';
+      var pct = Math.max(4, Math.round(e.count/max*100));
+      row.innerHTML =
+        '<div class="lbl">'+e.label+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div>'+
+        '<div class="count">'+e.count+' งาน</div>';
+      wrap.appendChild(row);
+    });
+  }
+
+  function render(){
+    renderKpis();
+    renderFailChart();
+    renderTable();
+  }
+
+  // ---------- detail drawer ----------
+  var overlay = document.getElementById('overlay');
+  function openDrawer(r){
+    document.getElementById('drawerTitle').textContent = 'Job No. ' + (r.job||'–');
+    document.getElementById('drawerMeta').textContent = (r.date||'–') + ' · ผู้บันทึก: ' + (r.name||'–');
+    var tbl = document.getElementById('drawerTable');
+    var html = '<thead><tr><th>รายการ</th><th>มาตรฐาน</th><th>ค่าที่วัดได้/บันทึก</th><th>ผล</th></tr></thead><tbody>';
+    r.checks.forEach(function(c){
+      html += '<tr><td>'+c.label+'</td><td>'+c.std+'</td><td>'+c.value+'</td><td>'+badge(c.status, c.statusText)+'</td></tr>';
+    });
+    html += '</tbody>';
+    tbl.innerHTML = html;
+    overlay.classList.add('open');
+  }
+  document.getElementById('btnCloseDrawer').addEventListener('click', function(){ overlay.classList.remove('open'); });
+  overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.classList.remove('open'); });
+
+  // ---------- export ----------
+  function exportRows(){
+    var rows = applyFilters(computedRows);
+    var header = ['Job No.','วันที่','ผู้บันทึก','สถานะรวม','จำนวนรายการไม่ผ่าน'];
+    var criteriaLabels = rows.length ? rows[0].checks.map(function(c){return c.label;}) : [];
+    criteriaLabels.forEach(function(l){ header.push(l+' (ค่า)'); header.push(l+' (ผล)'); });
+    var out = [header];
+    rows.forEach(function(r){
+      var line = [r.job, r.date, r.name, STATUS_LABEL[r.overall], r.failCount];
+      r.checks.forEach(function(c){ line.push(String(c.value)); line.push(c.statusText); });
+      out.push(line);
+    });
+    return out;
+  }
+
+  function downloadAoa(aoa, filename, bookType){
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'QC');
+    XLSX.writeFile(wb, filename, {bookType:bookType});
+  }
+
+  function requireXlsx(){
+    if (typeof XLSX === 'undefined'){
+      showBanner('โหลดไลบรารีสำหรับ export ไม่สำเร็จ (เครือข่ายอาจบล็อก cdnjs.cloudflare.com) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้านี้ใหม่');
+      return false;
+    }
+    return true;
+  }
+  document.getElementById('btnExportCsv').addEventListener('click', function(){
+    if (!computedRows.length){ showBanner('ยังไม่มีข้อมูลให้ export'); return; }
+    if (!requireXlsx()) return;
+    try { downloadAoa(exportRows(), 'qc-dashboard-' + Date.now() + '.csv', 'csv'); }
+    catch(err){ showBanner('Export CSV ไม่สำเร็จ: ' + err.message); }
+  });
+  document.getElementById('btnExportXlsx').addEventListener('click', function(){
+    if (!computedRows.length){ showBanner('ยังไม่มีข้อมูลให้ export'); return; }
+    if (!requireXlsx()) return;
+    try { downloadAoa(exportRows(), 'qc-dashboard-' + Date.now() + '.xlsx', 'xlsx'); }
+    catch(err){ showBanner('Export Excel ไม่สำเร็จ: ' + err.message); }
+  });
+
+  // ---------- controls ----------
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+  document.getElementById('statusFilter').addEventListener('change', renderTable);
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+
+  document.getElementById('thToggle').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-th]');
+    if (!btn) return;
+    thMode = btn.getAttribute('data-th');
+    safeSet('qc_th_mode', thMode);
+    Array.prototype.forEach.call(document.querySelectorAll('#thToggle button'), function(b){
+      b.classList.toggle('active', b===btn);
+    });
+    buildComputedRows();
+    render();
+  });
+
+  document.getElementById('btnTheme').addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    safeSet('qc_theme', next);
+  });
+
+  var settingsPanel = document.getElementById('settingsPanel');
+  var urlInput = document.getElementById('scriptUrlInput');
+  var sheetIdInput = document.getElementById('sheetIdInput');
+  var sheetGidInput = document.getElementById('sheetGidInput');
+  urlInput.value = scriptUrl;
+  sheetIdInput.value = sheetId;
+  sheetGidInput.value = sheetGid;
+  document.getElementById('btnSettings').addEventListener('click', function(){
+    settingsPanel.classList.toggle('open');
+  });
+  document.getElementById('btnSaveSheet').addEventListener('click', function(){
+    var idv = normalize(sheetIdInput.value);
+    var gidv = normalize(sheetGidInput.value);
+    if (!idv){ showBanner('กรุณาใส่ Spreadsheet ID'); return; }
+    sheetId = idv;
+    sheetGid = gidv;
+    safeSet('qc_sheet_id', idv);
+    safeSet('qc_sheet_gid', gidv);
+    settingsPanel.classList.remove('open');
+    loadData();
+  });
+  document.getElementById('btnSaveUrl').addEventListener('click', function(){
+    var v = normalize(urlInput.value);
+    scriptUrl = v;
+    safeSet('qc_script_url', v);
+    settingsPanel.classList.remove('open');
+    loadData();
+  });
+
+  // init
+  loadData();
+})();
+</script>
+</body>
+</html>
