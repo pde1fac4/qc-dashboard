@@ -51,19 +51,19 @@
   body{
     background:var(--surface-2); color:var(--text-primary);
     font-family:'Sarabun','Tahoma','Segoe UI',system-ui,sans-serif;
-    font-size:14px; line-height:1.5;
+    font-size:15px; line-height:1.5;
   }
   .wrap{max-width:1180px; margin:0 auto; padding:20px 20px 64px;}
   header.top{
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     flex-wrap:wrap; margin-bottom:18px;
   }
-  header.top h1{font-size:20px; font-weight:700; margin:0 0 2px;}
-  header.top .sub{color:var(--text-secondary); font-size:13px;}
+  header.top h1{font-size:21px; font-weight:700; margin:0 0 2px;}
+  header.top .sub{color:var(--text-secondary); font-size:14px;}
   header.top .brand{display:flex; align-items:center; gap:14px;}
   header.top .brand-logo{height:40px; width:auto; flex:0 0 auto; border-radius:4px; background:#fff; padding:3px;}
   .btn{
-    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
     border-radius:8px; border:1px solid var(--border); background:var(--surface-card);
     color:var(--text-primary); padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
     transition:background .15s;
@@ -78,37 +78,50 @@
 
   .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px;}
   .kpi{padding:14px 16px;}
-  .kpi .label{font-size:12px; color:var(--text-muted); font-weight:600; letter-spacing:.02em;}
-  .kpi .value{font-size:26px; font-weight:700; margin-top:4px; font-variant-numeric:proportional-nums;}
+  .kpi .label{font-size:13px; color:var(--text-muted); font-weight:600; letter-spacing:.02em;}
+  .kpi .value{font-size:27px; font-weight:700; margin-top:4px; font-variant-numeric:proportional-nums;}
   .kpi .value.good{color:var(--good);}
   .kpi .value.critical{color:var(--critical);}
   .kpi .value.warning{color:var(--accent-ink);}
 
+  .row-charts{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
+  .row-charts .chart-card{margin-bottom:0;}
   .chart-card{padding:16px 18px; margin-bottom:18px;}
-  .chart-card h2{font-size:14px; font-weight:700; margin:0 0 12px;}
+  .chart-card h2{font-size:15px; font-weight:700; margin:0 0 12px;}
   .bar-row{display:flex; align-items:center; gap:10px; margin:7px 0;}
-  .bar-row .lbl{width:190px; flex:0 0 190px; font-size:12.5px; color:var(--text-secondary); text-align:right;}
+  .bar-row .lbl{width:190px; flex:0 0 190px; font-size:13.5px; color:var(--text-secondary); text-align:right;}
   .bar-track{flex:1; background:var(--surface-1); border-radius:5px; height:16px; position:relative; overflow:hidden;}
-  .bar-fill{height:100%; border-radius:5px; background:var(--critical); transition:width .3s;}
-  .bar-row .count{width:74px; flex:0 0 74px; font-size:12.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--good); transition:width .3s;}
+  .bar-row .count{width:74px; flex:0 0 74px; font-size:13.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums;}
+  .donut-wrap{position:relative; width:150px; height:150px; margin:0 auto 14px;}
+  .donut-wrap svg{transform:rotate(-90deg);}
+  .donut-wrap circle{transition:stroke-dasharray .3s;}
+  .donut-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;}
+  .donut-pct{font-size:23px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums;}
+  .donut-sub{font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .donut-legend{display:flex; flex-direction:column; gap:6px;}
+  .donut-legend .row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);}
+  .donut-legend .swatch{width:10px; height:10px; border-radius:3px; flex:0 0 auto;}
+  .donut-legend .row .lbl{flex:1;}
+  .donut-legend .row .val{font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums;}
 
   .filters{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:12px 14px;}
   .filters input[type=text], .filters select{
-    font-family:inherit; font-size:13px; padding:7px 10px; border-radius:8px;
+    font-family:inherit; font-size:14px; padding:7px 10px; border-radius:8px;
     border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary);
   }
-  .filters label{font-size:12px; color:var(--text-muted); font-weight:600; margin-right:4px;}
+  .filters label{font-size:13px; color:var(--text-muted); font-weight:600; margin-right:4px;}
   .filters .grp{display:flex; align-items:center; gap:6px;}
   .seg{display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
   .seg button{
     border:none; background:var(--surface-1); color:var(--text-secondary); font-family:inherit;
-    font-size:12.5px; font-weight:600; padding:7px 12px; cursor:pointer;
+    font-size:13.5px; font-weight:600; padding:7px 12px; cursor:pointer;
   }
   .seg button.active{background:var(--accent); color:#fff;}
 
-  table.data{width:100%; border-collapse:collapse; font-size:13px;}
+  table.data{width:100%; border-collapse:collapse; font-size:14px;}
   table.data th{
-    text-align:left; font-size:11.5px; color:var(--text-muted); font-weight:700;
+    text-align:left; font-size:12.5px; color:var(--text-muted); font-weight:700;
     text-transform:uppercase; letter-spacing:.03em; padding:9px 10px; border-bottom:1px solid var(--gridline);
     white-space:nowrap;
   }
@@ -118,7 +131,7 @@
 
   .badge{
     display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px;
-    font-size:12px; font-weight:700; white-space:nowrap;
+    font-size:13px; font-weight:700; white-space:nowrap;
   }
   .badge.good{background:var(--good-bg); color:var(--good);}
   .badge.warning{background:var(--warning-bg); color:var(--accent-ink);}
@@ -133,25 +146,22 @@
   .overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50; overflow:auto;}
   .overlay.open{display:flex;}
   .drawer{background:var(--surface-card); border-radius:14px; max-width:720px; width:100%; padding:22px 24px; border:1px solid var(--border);}
-  .drawer h2{margin:0 0 2px; font-size:17px;}
-  .drawer .meta{color:var(--text-secondary); font-size:12.5px; margin-bottom:14px;}
+  .drawer h2{margin:0 0 2px; font-size:18px;}
+  .drawer .meta{color:var(--text-secondary); font-size:13.5px; margin-bottom:14px;}
   .drawer .closebtn{float:right;}
-  .detail-table{width:100%; border-collapse:collapse; font-size:12.8px; margin-top:6px;}
-  .detail-table th{text-align:left; color:var(--text-muted); font-weight:700; font-size:11px; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--gridline);}
+  .detail-table{width:100%; border-collapse:collapse; font-size:13.8px; margin-top:6px;}
+  .detail-table th{text-align:left; color:var(--text-muted); font-weight:700; font-size:12px; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--gridline);}
   .detail-table td{padding:6px 8px; border-bottom:1px solid var(--gridline);}
-  .detail-table tr.section td{padding-top:14px; font-weight:700; color:var(--text-secondary); border-bottom:none; font-size:12px;}
-  .note{font-size:12px; color:var(--text-muted); margin-top:14px; line-height:1.6;}
+  .detail-table tr.section td{padding-top:14px; font-weight:700; color:var(--text-secondary); border-bottom:none; font-size:13px;}
+  .note{font-size:13px; color:var(--text-muted); margin-top:14px; line-height:1.6;}
 
   .banner{
-    padding:10px 14px; border-radius:10px; font-size:12.5px; margin-bottom:14px;
+    padding:10px 14px; border-radius:10px; font-size:13.5px; margin-bottom:14px;
     background:var(--warning-bg); color:var(--accent-ink); border:1px solid var(--border);
     display:none;
   }
   .banner.show{display:block;}
-  .settings{display:none; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 14px; margin-bottom:14px;}
-  .settings.open{display:flex;}
-  .settings input{flex:1; min-width:260px; font-family:inherit; font-size:12.5px; padding:7px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary);}
-  footer{margin-top:24px; text-align:center; color:var(--text-muted); font-size:11.5px;}
+  footer{margin-top:24px; text-align:center; color:var(--text-muted); font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -166,7 +176,6 @@
       </div>
     </div>
     <div class="toolbar">
-      <button class="btn" id="btnSettings" type="button">⚙ ตั้งค่า</button>
       <button class="btn" id="btnTheme" type="button">🌙 โหมดมืด</button>
       <button class="btn" id="btnRefresh" type="button">↻ รีเฟรช</button>
       <button class="btn" id="btnExportCsv" type="button">⇩ Export CSV</button>
@@ -174,32 +183,33 @@
     </div>
   </header>
 
-  <div class="settings card" id="settingsPanel">
-    <label style="width:100%;font-size:12px;color:var(--text-muted);font-weight:600;">แหล่งข้อมูลหลัก: อ่านตรงจาก Google Sheet (ต้องแชร์ลิงก์เป็น "ทุกคนที่มีลิงก์ - ดูได้")</label>
-    <label for="sheetIdInput" style="font-size:12px;color:var(--text-muted);">Spreadsheet ID</label>
-    <input type="text" id="sheetIdInput" placeholder="เช่น 1hlkQQFfrIMVnm_g-GK80v40yS64Dwp-gfVg1dZccLZs">
-    <label for="sheetGidInput" style="font-size:12px;color:var(--text-muted);">gid ของแท็บ (ดูจาก #gid=... ท้าย URL)</label>
-    <input type="text" id="sheetGidInput" placeholder="เช่น 1453635812" style="min-width:140px;flex:0 0 160px;">
-    <button class="btn primary" id="btnSaveSheet" type="button">บันทึกและโหลดใหม่</button>
-    <label for="scriptUrlInput" style="width:100%;font-size:12px;color:var(--text-muted);font-weight:600;margin-top:6px;">แหล่งข้อมูลสำรอง (ถ้าอ่านตรงไม่ได้): Apps Script Web App URL</label>
-    <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec (ไม่บังคับ)">
-    <button class="btn" id="btnSaveUrl" type="button">บันทึก URL สำรอง</button>
-  </div>
-
   <div class="banner" id="banner"></div>
 
   <div class="kpi-row">
     <div class="card kpi"><div class="label">งานทั้งหมด</div><div class="value" id="kpiTotal">–</div></div>
     <div class="card kpi"><div class="label">ผ่านทุกรายการ</div><div class="value good" id="kpiPass">–</div></div>
-    <div class="card kpi"><div class="label">รอแก้ไข</div><div class="value warning" id="kpiWarn">–</div></div>
     <div class="card kpi"><div class="label">มีรายการไม่ผ่าน</div><div class="value critical" id="kpiFail">–</div></div>
     <div class="card kpi"><div class="label">อัตราผ่าน</div><div class="value" id="kpiRate">–</div></div>
   </div>
 
-  <div class="card chart-card">
-    <h2>จำนวนงานที่ไม่ผ่านตามรายการตรวจ (Top)</h2>
-    <div id="failChart"></div>
-    <div class="empty" id="failChartEmpty" style="display:none;padding:12px 0;">ยังไม่มีข้อมูลไม่ผ่าน</div>
+  <div class="row-charts">
+    <div class="card chart-card" style="flex:1.4;min-width:340px;">
+      <h2>จำนวนงานที่ผ่านตามรายการตรวจ (Top)</h2>
+      <div id="passChart"></div>
+      <div class="empty" id="passChartEmpty" style="display:none;padding:12px 0;">ยังไม่มีข้อมูล</div>
+    </div>
+    <div class="card chart-card" style="flex:1;min-width:260px;">
+      <h2>อัตราส่วนผ่าน/ไม่ผ่าน</h2>
+      <div class="donut-wrap">
+        <svg id="donutSvg" viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="สัดส่วนงานที่ผ่านและไม่ผ่าน"></svg>
+        <div class="donut-center">
+          <div class="donut-pct" id="donutPct">–</div>
+          <div class="donut-sub">ผ่าน</div>
+        </div>
+      </div>
+      <div class="donut-legend" id="donutLegend"></div>
+      <div class="empty" id="donutEmpty" style="display:none;padding:12px 0;">ยังไม่มีข้อมูล</div>
+    </div>
   </div>
 
   <div class="card filters">
@@ -537,7 +547,7 @@
       })
       .catch(function(err){
         document.getElementById('lastUpdated').textContent = 'Failed to load data';
-        showBanner('ดึงข้อมูลไม่สำเร็จ: ' + err.message + ' — ตรวจสอบว่า (1) เปิด Google Sheet แล้วกด Share ตั้งเป็น "ทุกคนที่มีลิงก์ - ดูได้", (2) Spreadsheet ID/gid ในปุ่ม ⚙ ตั้งค่าถูกต้อง, (3) เปิดไฟล์นี้จากเบราว์เซอร์จริง ไม่ใช่หน้าพรีวิวแชท');
+        showBanner('ดึงข้อมูลไม่สำเร็จ: ' + err.message + ' — ตรวจสอบว่า (1) เปิด Google Sheet แล้วกด Share ตั้งเป็น "ทุกคนที่มีลิงก์ - ดูได้", (2) เปิดไฟล์นี้จากเบราว์เซอร์จริง ไม่ใช่หน้าพรีวิวแชท');
       });
   }
 
@@ -588,16 +598,15 @@
     var judged = pass+warn+fail;
     document.getElementById('kpiTotal').textContent = total;
     document.getElementById('kpiPass').textContent = pass;
-    document.getElementById('kpiWarn').textContent = warn;
     document.getElementById('kpiFail').textContent = fail;
     document.getElementById('kpiRate').textContent = judged ? Math.round(pass/judged*100)+'%' : '–';
   }
 
-  function renderFailChart(){
+  function renderPassChart(){
     var counts = {};
     computedRows.forEach(function(r){
       r.checks.forEach(function(c){
-        if (!c.infoOnly && c.status==='critical'){
+        if (!c.infoOnly && c.status==='good'){
           counts[c.label] = (counts[c.label]||0)+1;
         }
       });
@@ -605,8 +614,8 @@
     var entries = Object.keys(counts).map(function(k){return {label:k, count:counts[k]};});
     entries.sort(function(a,b){return b.count-a.count;});
     entries = entries.slice(0,8);
-    var wrap = document.getElementById('failChart');
-    var emptyEl = document.getElementById('failChartEmpty');
+    var wrap = document.getElementById('passChart');
+    var emptyEl = document.getElementById('passChartEmpty');
     wrap.innerHTML='';
     if (entries.length===0){ emptyEl.style.display='block'; return; }
     emptyEl.style.display='none';
@@ -623,9 +632,66 @@
     });
   }
 
+  function renderDonut(){
+    var pass = computedRows.filter(function(r){return r.overall==='good';}).length;
+    var notPass = computedRows.filter(function(r){return r.overall==='critical' || r.overall==='warning';}).length;
+    var total = pass + notPass;
+    var svg = document.getElementById('donutSvg');
+    var legend = document.getElementById('donutLegend');
+    var emptyEl = document.getElementById('donutEmpty');
+    var pctEl = document.getElementById('donutPct');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    legend.innerHTML = '';
+    if (total === 0){
+      emptyEl.style.display = 'block';
+      pctEl.textContent = '–';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    var cx = 60, cy = 60, r = 50, sw = 16;
+    var C = 2 * Math.PI * r;
+    var passFrac = pass / total;
+    var passLen = C * passFrac;
+    var failLen = C - passLen;
+    var ns = 'http://www.w3.org/2000/svg';
+    var css = getComputedStyle(document.documentElement);
+    var cGood = (css.getPropertyValue('--good') || '#0ca30c').trim() || '#0ca30c';
+    var cCritical = (css.getPropertyValue('--critical') || '#d03b3b').trim() || '#d03b3b';
+
+    function makeArc(color, len, offset){
+      var el = document.createElementNS(ns, 'circle');
+      el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r);
+      el.setAttribute('fill', 'none');
+      el.setAttribute('stroke', color);
+      el.setAttribute('stroke-width', sw);
+      el.setAttribute('stroke-dasharray', len.toFixed(2) + ' ' + Math.max(0, C - len).toFixed(2));
+      el.setAttribute('stroke-dashoffset', (-offset).toFixed(2));
+      return el;
+    }
+
+    if (pass > 0) svg.appendChild(makeArc(cGood, passLen, 0));
+    if (notPass > 0) svg.appendChild(makeArc(cCritical, failLen, passLen));
+
+    pctEl.textContent = Math.round(passFrac*100)+'%';
+
+    [
+      {label:'ผ่าน', count:pass, color:cGood},
+      {label:'ไม่ผ่าน', count:notPass, color:cCritical}
+    ].forEach(function(item){
+      var row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<span class="swatch" style="background:'+item.color+'"></span>'+
+        '<span class="lbl">'+item.label+'</span>'+
+        '<span class="val">'+item.count+'</span>';
+      legend.appendChild(row);
+    });
+  }
+
   function render(){
     renderKpis();
-    renderFailChart();
+    renderPassChart();
+    renderDonut();
     renderTable();
   }
 
@@ -710,35 +776,6 @@
     var next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     safeSet('qc_theme', next);
-  });
-
-  var settingsPanel = document.getElementById('settingsPanel');
-  var urlInput = document.getElementById('scriptUrlInput');
-  var sheetIdInput = document.getElementById('sheetIdInput');
-  var sheetGidInput = document.getElementById('sheetGidInput');
-  urlInput.value = scriptUrl;
-  sheetIdInput.value = sheetId;
-  sheetGidInput.value = sheetGid;
-  document.getElementById('btnSettings').addEventListener('click', function(){
-    settingsPanel.classList.toggle('open');
-  });
-  document.getElementById('btnSaveSheet').addEventListener('click', function(){
-    var idv = normalize(sheetIdInput.value);
-    var gidv = normalize(sheetGidInput.value);
-    if (!idv){ showBanner('กรุณาใส่ Spreadsheet ID'); return; }
-    sheetId = idv;
-    sheetGid = gidv;
-    safeSet('qc_sheet_id', idv);
-    safeSet('qc_sheet_gid', gidv);
-    settingsPanel.classList.remove('open');
-    loadData();
-  });
-  document.getElementById('btnSaveUrl').addEventListener('click', function(){
-    var v = normalize(urlInput.value);
-    scriptUrl = v;
-    safeSet('qc_script_url', v);
-    settingsPanel.classList.remove('open');
-    loadData();
   });
 
   // init
