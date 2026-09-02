@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     color-scheme: light;
@@ -149,6 +151,10 @@
   .drawer h2{margin:0 0 2px; font-size:18px;}
   .drawer .meta{color:var(--text-secondary); font-size:13.5px; margin-bottom:14px;}
   .drawer .closebtn{float:right;}
+  .drawer-wide{max-width:920px;}
+  .pdf-frame-wrap{margin-top:12px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface-1); height:70vh;}
+  .pdf-frame-wrap iframe{width:100%; height:100%; border:0; display:block;}
+  .pdf-preview-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:14px;}
   .detail-table{width:100%; border-collapse:collapse; font-size:13.8px; margin-top:6px;}
   .detail-table th{text-align:left; color:var(--text-muted); font-weight:700; font-size:12px; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--gridline);}
   .detail-table td{padding:6px 8px; border-bottom:1px solid var(--gridline);}
@@ -179,7 +185,8 @@
       <button class="btn" id="btnTheme" type="button">🌙 โหมดมืด</button>
       <button class="btn" id="btnRefresh" type="button">↻ รีเฟรช</button>
       <button class="btn" id="btnExportCsv" type="button">⇩ Export CSV</button>
-      <button class="btn primary" id="btnExportXlsx" type="button">⇩ Export Excel</button>
+      <button class="btn" id="btnExportXlsx" type="button">⇩ Export Excel</button>
+      <button class="btn primary" id="btnExportPdf" type="button">⇩ Export PDF</button>
     </div>
   </header>
 
@@ -264,6 +271,21 @@
   </div>
 </div>
 
+<div class="overlay" id="pdfOverlay">
+  <div class="drawer drawer-wide">
+    <button class="btn closebtn" id="btnClosePdfPreview" type="button">✕ ปิด</button>
+    <h2>ตัวอย่าง PDF ก่อนดาวน์โหลด</h2>
+    <div class="meta" id="pdfPreviewMeta"></div>
+    <div class="pdf-frame-wrap">
+      <iframe id="pdfPreviewFrame" title="ตัวอย่างไฟล์ PDF"></iframe>
+    </div>
+    <div class="pdf-preview-actions">
+      <button class="btn" id="btnCancelPdf" type="button">ยกเลิก</button>
+      <button class="btn primary" id="btnDownloadPdf" type="button">⇩ ดาวน์โหลด PDF</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -286,12 +308,34 @@
   var theme = safeGet('qc_theme', '');
   if (theme) document.documentElement.setAttribute('data-theme', theme);
 
+  function isDarkNow(){
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark') return true;
+    if (attr === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function updateThemeButton(){
+    var btn = document.getElementById('btnTheme');
+    btn.textContent = isDarkNow() ? '☀️ โหมดสว่าง' : '🌙 โหมดมืด';
+  }
+
   var allRecords = []; // raw objects keyed by sheet header
   var headers = [];
   var computedRows = []; // {record, jobNo, date, name, checks:[...], failCount, overallStatus}
 
   // ---------- header matching ----------
   function normalize(s){ return String(s == null ? '' : s).trim(); }
+
+  // gviz ส่งค่าเซลล์ที่เป็นวันที่มาในรูป "Date(ปี,เดือน,วัน[,ชม,นาที,วินาที])" (เดือนเริ่มที่ 0)
+  // แปลงเป็นข้อความ วัน/เดือน/ปี ให้อ่านง่าย แทนที่จะโชว์ค่าดิบแบบนี้ตรงๆ
+  function pad2(n){ return n < 10 ? '0'+n : ''+n; }
+  function gvizDateToStr(v){
+    if (typeof v !== 'string') return v;
+    var m = /^Date\((\d+),(\d+),(\d+)(?:,\d+,\d+,\d+)?\)$/.exec(v);
+    if (!m) return v;
+    var y = parseInt(m[1],10), mo = parseInt(m[2],10) + 1, d = parseInt(m[3],10);
+    return pad2(d) + '/' + pad2(mo) + '/' + y;
+  }
   function findHeader(cands){
     for (var i=0;i<cands.length;i++){
       var target = cands[i].toLowerCase();
@@ -489,7 +533,7 @@
             var obj = {};
             (row.c || []).forEach(function(cell, i){
               var v = cell ? (cell.v !== undefined && cell.v !== null ? cell.v : (cell.f || '')) : '';
-              obj[hdrs[i]] = v;
+              obj[hdrs[i]] = gvizDateToStr(v);
             });
             return obj;
           }).filter(function(o){
@@ -754,6 +798,88 @@
     catch(err){ showBanner('Export Excel ไม่สำเร็จ: ' + err.message); }
   });
 
+  function requirePdfLibs(){
+    if (typeof html2canvas === 'undefined' || !window.jspdf || !window.jspdf.jsPDF){
+      showBanner('โหลดไลบรารีสำหรับ export PDF ไม่สำเร็จ (เครือข่ายอาจบล็อก cdnjs.cloudflare.com) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้านี้ใหม่');
+      return false;
+    }
+    return true;
+  }
+
+  var pendingPdf = null; // {blobUrl, filename} รอผู้ใช้กด "ดาวน์โหลด" หลังดูตัวอย่าง
+
+  function exportPdf(){
+    if (!computedRows.length){ showBanner('ยังไม่มีข้อมูลให้ export'); return; }
+    if (!requirePdfLibs()) return;
+    var btn = document.getElementById('btnExportPdf');
+    var target = document.querySelector('.wrap');
+    var bg = getComputedStyle(document.body).backgroundColor || '#ffffff';
+    btn.disabled = true;
+    var origLabel = btn.textContent;
+    btn.textContent = '… กำลังสร้าง PDF';
+    html2canvas(target, {scale:2, useCORS:true, backgroundColor:bg}).then(function(canvas){
+      var imgData = canvas.toDataURL('image/png');
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var pdf = new jsPDFCtor('p', 'pt', 'a4');
+      var pageWidth = pdf.internal.pageSize.getWidth();
+      var pageHeight = pdf.internal.pageSize.getHeight();
+      var imgWidth = pageWidth;
+      var imgHeight = canvas.height * imgWidth / canvas.width;
+      var heightLeft = imgHeight;
+      var position = 0;
+      var pageCount = 1;
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0){
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        pageCount++;
+      }
+      var blob = pdf.output('blob');
+      var blobUrl = URL.createObjectURL(blob);
+      var filename = 'qc-dashboard-' + Date.now() + '.pdf';
+      showPdfPreview(blobUrl, filename, pageCount);
+    }).catch(function(err){
+      showBanner('Export PDF ไม่สำเร็จ: ' + err.message);
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = origLabel;
+    });
+  }
+  document.getElementById('btnExportPdf').addEventListener('click', exportPdf);
+
+  function showPdfPreview(blobUrl, filename, pageCount){
+    pendingPdf = {blobUrl: blobUrl, filename: filename};
+    document.getElementById('pdfPreviewFrame').src = blobUrl;
+    document.getElementById('pdfPreviewMeta').textContent =
+      'ตรวจสอบเนื้อหาก่อนดาวน์โหลด · ' + pageCount + ' หน้า (A4)';
+    document.getElementById('pdfOverlay').classList.add('open');
+  }
+
+  function closePdfPreview(){
+    document.getElementById('pdfOverlay').classList.remove('open');
+    document.getElementById('pdfPreviewFrame').src = 'about:blank';
+    if (pendingPdf && pendingPdf.blobUrl){ URL.revokeObjectURL(pendingPdf.blobUrl); }
+    pendingPdf = null;
+  }
+  document.getElementById('btnClosePdfPreview').addEventListener('click', closePdfPreview);
+  document.getElementById('btnCancelPdf').addEventListener('click', closePdfPreview);
+  document.getElementById('pdfOverlay').addEventListener('click', function(e){
+    if (e.target === document.getElementById('pdfOverlay')) closePdfPreview();
+  });
+  document.getElementById('btnDownloadPdf').addEventListener('click', function(){
+    if (!pendingPdf) return;
+    var a = document.createElement('a');
+    a.href = pendingPdf.blobUrl;
+    a.download = pendingPdf.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    closePdfPreview();
+  });
+
   // ---------- controls ----------
   document.getElementById('searchInput').addEventListener('input', renderTable);
   document.getElementById('statusFilter').addEventListener('change', renderTable);
@@ -772,11 +898,18 @@
   });
 
   document.getElementById('btnTheme').addEventListener('click', function(){
-    var cur = document.documentElement.getAttribute('data-theme');
-    var next = cur === 'dark' ? 'light' : 'dark';
+    var next = isDarkNow() ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     safeSet('qc_theme', next);
+    updateThemeButton();
   });
+  updateThemeButton();
+  if (!theme && window.matchMedia){
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var mqHandler = function(){ if (!safeGet('qc_theme','')) updateThemeButton(); };
+    if (mq.addEventListener) mq.addEventListener('change', mqHandler);
+    else if (mq.addListener) mq.addListener(mqHandler);
+  }
 
   // init
   loadData();
